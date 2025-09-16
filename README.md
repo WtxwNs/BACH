@@ -22,6 +22,7 @@ LLM writes lyrics → Transformer emits ABC score → off-the-shelf renderers gi
 ---
 
 ## 🏗️ Model Architecture (one glance)
+
 <pre>
 ```mermaid
 flowchart TD
@@ -39,8 +40,7 @@ flowchart TD
 |-----------|----------|
 | **Dual-NTP** | Predict `{vocal_patch, accomp_patch}` jointly every step |
 | **Chain-of-Score** | Section tags `[START:Chorus] ... [END:Chorus]` for long coherence |
-| **Bar-stream patch** | 16-char non-overlapping patches per bar (vocab 65 k) |
-| **Positional** | RoPE, 4 k-patch context ≈ 5 min song |
+| **Bar-stream patch** | 16-char non-overlapping patches per bar |
 
 ---
 
@@ -59,6 +59,7 @@ python bach/generate.py \
     --out_abc demo/rainy_lofi.abc
 
 # 4. Render audio
+```
 
 ##  🎧 Listen now
 demo/example.mp3 is ready for you, it's a whole song — compare it with Suno
