@@ -15,8 +15,8 @@ LLM writes lyrics → Transformer emits ABC score → off-the-shelf renderers gi
 | Path | Description |
 |------|-------------|
 | `README.md` | This file |
-| `bach/` | inference code |
-| `demo/` | an example song |
+| `code/` | inference code |
+| `example.mp3` | an example song |
 | `fig/` | Architecture figure |
 
 ---
@@ -57,7 +57,7 @@ python bach/generate.py \
 ```
 
 ##  🎧 Listen now
-demo/example.mp3 is ready for you, it's a whole song — compare it with Suno
+example.mp3 is ready for you, it's a whole song — compare it with Suno
 
 ## Full release upon related paper acceptance
 - Complete training set (ABC + lyrics + structure labels)
