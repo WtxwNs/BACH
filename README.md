@@ -18,7 +18,6 @@ LLM writes lyrics → Transformer emits ABC score → off-the-shelf renderers gi
 | `bach/` | inference code |
 | `demo/` | an example song |
 | `fig/` | Architecture figure |
-| `TODO.md` | Post-acceptance release checklist |
 
 ---
 
