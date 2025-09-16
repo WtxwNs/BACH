@@ -24,15 +24,25 @@ LLM writes lyrics → Transformer emits ABC score → off-the-shelf renderers gi
 ## 🏗️ Model Architecture (one glance)
 
 User prompt
+
     ↓
+    
 Qwen3-0.5B — lyrics & style tags
+
     ↓
+    
 BACH-1.1B Decoder-Only Transformer
+
     ↓
+    
 ABC score (Dual-NTP + Chain-of-Score)
+
     ↓
+    
 ABC → MIDI → FluidSynth + VOCALOID
+
     ↓
+    
 Stereo mix
 
 
