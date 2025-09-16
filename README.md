@@ -23,17 +23,15 @@ LLM writes lyrics → Transformer emits ABC score → off-the-shelf renderers gi
 
 ## 🏗️ Model Architecture (one glance)
 
-<pre>
 ```mermaid
 flowchart TD
     A[User prompt] --> B[Qwen3-0.5B<br/>lyrics & style tags]
     B --> C[BACH-1.1B<br/>Decoder-Only Transformer]
     C --> D[ABC score<br/>Dual-NTP + Chain-of-Score]
-    D --> E[ABC → MIDI]
+    D --> E[ABC --> MIDI]
     E --> F[FluidSynth + VOCALOID]
     F --> G[Stereo mix]
 ```
-</pre>
 
 
 | Component | Key idea |
