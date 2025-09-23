@@ -57,7 +57,7 @@ python bach/generate.py \
 ```
 
 ##  🎧 Listen now
-example.mp3 is ready for you, it's a whole song — compare it with Suno
+example.mp3 is ready for you, it's a whole song. You can compare it with Suno🙂
 
 ## Full release upon related paper acceptance
 - Complete training set (ABC + lyrics + structure labels)
