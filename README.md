@@ -1,10 +1,8 @@
 # BACH: Bar-level AI Composing Helper  
 
-[![arXiv](https://img.shields.io/badge/arXiv-2508.01394-b31b1b.svg?logo=arxiv)](https://arxiv.org/abs/2508.01394)
-
 <p align="center">
-  <a href="https://arxiv.org/abs/2409.12345">
-    <img src="https://img.shields.io/badge/arXiv-2409.12345-b31b1b.svg" alt="arXiv"/>
+  <a href="https://arxiv.org/abs/2508.01394">
+    <img src="https://img.shields.io/badge/arXiv-2508.01394-b31b1b.svg" alt="arXiv"/>
   </a>
   <a href="https://github.com/WtxwNs/BACH/blob/main/LICENSE">
     <img src="https://img.shields.io/github/license/WtxwNs/BACH" alt="License"/>
