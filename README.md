@@ -1,3 +1,9 @@
+<p align="center">
+  <img src="https://raw.githubusercontent.com/WtxwNs/BACH/main/tokenpair.png" width="85%"/>
+  <br><br>
+  <i>Watch how BACH turns raw tokens into structured music—step by step.</i>
+</p>
+
 # BACH: Bar-level AI Composing Helper  
 
 <p align="center">
