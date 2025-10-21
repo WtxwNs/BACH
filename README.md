@@ -1,4 +1,7 @@
 # BACH: Bar-level AI Composing Helper  
+
+[![arXiv](https://img.shields.io/badge/arXiv-2508.01394-b31b1b.svg?logo=arxiv)](https://arxiv.org/abs/2508.01394)
+
 &gt; *"Via Score to Performance: Efficient Human-Controllable Long Song Generation with Bar-Level Symbolic Notation"*  
 &gt; ICASSP 2026 Submission – **Pending Review**
 
