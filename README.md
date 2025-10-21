@@ -5,8 +5,6 @@
 &gt; *"Via Score to Performance: Efficient Human-Controllable Long Song Generation with Bar-Level Symbolic Notation"*  
 &gt; ICASSP 2026 Submission – **Pending Review**
 
-&gt; Read it on: https://arxiv.org/abs/2508.01394
-
 ---
 
 ## 🎼 One-sentence Summary  
