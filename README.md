@@ -117,14 +117,17 @@ example.mp3 is ready for you, it's a whole song. You can compare it with SunoðŸ™
 - Complete Code
 
 ## ðŸ“Ž Citation
-Paper is released on Arxiv, 
+Paper is released on Arxiv and IEEE Xplore, 
 ```bibtex
-@misc{wang2025scoreperformanceefficienthumancontrollable,
-      title={Via Score to Performance: Efficient Human-Controllable Long Song Generation with Bar-Level Symbolic Notation}, 
-      author={Tongxi Wang and Yang Yu and Qing Wang and Junlang Qian},
-      year={2025},
-      eprint={2508.01394},
-      archivePrefix={arXiv},
-      primaryClass={cs.SD},
-      url={https://arxiv.org/abs/2508.01394}, 
+@INPROCEEDINGS{11463956,
+  author={Wang, Tongxi and Yu, Yang and Wang, Qing and Qian, Junlang},
+  booktitle={ICASSP 2026 - 2026 IEEE International Conference on Acoustics, Speech and Signal Processing (ICASSP)}, 
+  title={Via Score to Performance: Efficient Human-Controllable Long Song Generation with Bar-Level Symbolic Notation}, 
+  year={2026},
+  volume={},
+  number={},
+  pages={4856-4860},
+  keywords={Feeds;Antennas;Semiconductor lasers;Semiconductor optical amplifiers;Service-oriented architecture;Protocols;Web services;HTTP;LoRa;Wide area networks;Song generation;music AIGC},
+  doi={10.1109/ICASSP55912.2026.11463956}}
+
 }
