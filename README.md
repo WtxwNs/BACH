@@ -127,7 +127,6 @@ Paper is released on Arxiv and IEEE Xplore,
   volume={},
   number={},
   pages={4856-4860},
-  keywords={Feeds;Antennas;Semiconductor lasers;Semiconductor optical amplifiers;Service-oriented architecture;Protocols;Web services;HTTP;LoRa;Wide area networks;Song generation;music AIGC},
   doi={10.1109/ICASSP55912.2026.11463956}}
 
 }
