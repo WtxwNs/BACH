@@ -90,22 +90,45 @@ Stereo mix
 
 ---
 
-## 🧪 Quick start (CPU friendly)
+## 🧪 Using this preview release
+
+This checkout contains partial inference, preprocessing, and evaluation
+utilities. It is **not a complete, CPU-ready BACH generation pipeline**.
+The previously shown `bach/generate.py` entry point and root
+`requirements.txt` are not present.
+
 ```bash
-# 1. Clone
-git clone https://github.com/your-github/BACH.git
+git clone https://github.com/WtxwNs/BACH.git
 cd BACH
 
-# 2. Install
-pip install -r requirements.txt        # transformers>=4.41 mido abcpy fluidsynth
+# Inspect the available inference options without loading a model.
+python code/inference/infer.py --help
 
-# 3. Generate ABC
-python bach/generate.py \
-    --prompt "A rainy-day lo-fi hip-hop song about missing the last train" \
-    --out_abc demo/rainy_lofi.abc
-
-# 4. Render audio
+# Run dependency-free helper regression tests.
+python -m unittest discover -s tests -v
 ```
+
+The helper/CLI/shell tests use the standard library. Installing NumPy
+also enables array-based stage-two and pitch-chunk regression tests;
+those tests are skipped when NumPy is unavailable.
+
+The inference dependency list is `code/requirements.txt`. Installing it
+alone is insufficient for end-to-end generation: the referenced
+`xcodec_mini_infer` modules and codec/decoder assets are not included.
+The fine-tuning scripts also reference missing `scripts/train_lora.py`
+and `core/tokenizer` components. Model execution, training, and audio
+rendering require those assets and a compatible environment; no missing
+weights, source, or datasets are supplied by this maintenance update.
+
+Use only trusted model assets. Inference accepts the supported
+`SoundStream` generator and loads tensor checkpoints with PyTorch's
+restricted weights-only loader. Legacy pickled model objects are not
+loaded automatically.
+
+The pitch evaluator accepts explicit paths instead of machine-specific
+directories; inspect its options with
+`python code/evals/pitch_range/main.py --help`. Actual pitch extraction
+still needs librosa, RMVPE, and its model checkpoint.
 
 ##  🎧 Listen now
 example.mp3 is ready for you, it's a whole song. You can compare it with Suno🙂
