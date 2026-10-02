@@ -114,7 +114,7 @@ NUM_TRAIN_EPOCHS=10
 
 # Data paths (replace with your actual paths)
 DATA_PATH="<weight_and_path_to_data_X>"     
-DATA_CACHE_PATH="<path_to_tokenizer_model>"
+DATA_CACHE_PATH="<path_to_data_cache>"
 
 # Set comma-separated list of proportions for training, validation, and test split
 DATA_SPLIT="900,50,50"
@@ -164,56 +164,47 @@ echo "==============================================="
 # Build and Execute Command
 # ==============================
 
-# Base command
-CMD="torchrun --nproc_per_node=$NUM_GPUS --master_port=$MASTER_PORT scripts/train_lora.py \
-    --seq-length $SEQ_LENGTH \
-    --data-path $DATA_PATH \
-    --data-cache-path $DATA_CACHE_PATH \
-    --split $DATA_SPLIT \
-    --tokenizer-model $TOKENIZER_MODEL_PATH \
-    --global-batch-size $GLOBAL_BATCH_SIZE \
-    --per-device-train-batch-size $PER_DEVICE_TRAIN_BATCH_SIZE \
-    --per-device-eval-batch-size $PER_DEVICE_EVAL_BATCH_SIZE \
-    --train-iters $TRAIN_ITERS \
-    --num-train-epochs $NUM_TRAIN_EPOCHS \
-    --logging-steps $LOGGING_STEPS \
-    --save-steps $SAVE_STEPS \
-    --deepspeed $DEEPSPEED_CONFIG"
-
-# Add conditional arguments
+# Expand the documented whitespace-separated lists without evaluating shell text.
+read -r -a data_args <<< "$DATA_PATH"
+read -r -a lora_args <<< "$LORA_TARGET_MODULES"
+CMD=(torchrun "--nproc_per_node=$NUM_GPUS" "--master_port=$MASTER_PORT" scripts/train_lora.py
+    --seq-length "$SEQ_LENGTH"
+    --data-path "${data_args[@]}"
+    --data-cache-path "$DATA_CACHE_PATH"
+    --split "$DATA_SPLIT"
+    --tokenizer-model "$TOKENIZER_MODEL_PATH"
+    --global-batch-size "$GLOBAL_BATCH_SIZE"
+    --per-device-train-batch-size "$PER_DEVICE_TRAIN_BATCH_SIZE"
+    --per-device-eval-batch-size "$PER_DEVICE_EVAL_BATCH_SIZE"
+    --train-iters "$TRAIN_ITERS"
+    --num-train-epochs "$NUM_TRAIN_EPOCHS"
+    --logging-steps "$LOGGING_STEPS"
+    --save-steps "$SAVE_STEPS"
+    --deepspeed "$DEEPSPEED_CONFIG"
+    --model-name-or-path "$MODEL_NAME"
+    --cache-dir "$MODEL_CACHE_DIR"
+    --output-dir "$OUTPUT_DIR"
+    --lora-r "$LORA_R"
+    --lora-alpha "$LORA_ALPHA"
+    --lora-dropout "$LORA_DROPOUT"
+    --lora-target-modules "${lora_args[@]}"
+)
 if [ "$USE_WANDB" = true ]; then
-    CMD="$CMD --report-to wandb --run-name \"$RUN_NAME\""
-elif [ "$USE_WANDB" = false ]; then
-    CMD="$CMD --report-to none"
+    CMD+=(--report-to wandb --run-name "$RUN_NAME")
+else
+    CMD+=(--report-to none)
 fi
-
-CMD="$CMD \
-    --model-name-or-path \"$MODEL_NAME\" \
-    --cache-dir $MODEL_CACHE_DIR \
-    --output-dir $OUTPUT_DIR \
-    --lora-r $LORA_R \
-    --lora-alpha $LORA_ALPHA \
-    --lora-dropout $LORA_DROPOUT \
-    --lora-target-modules $LORA_TARGET_MODULES"
-
 if [ "$USE_BF16" = true ]; then
-    CMD="$CMD --bf16"
+    CMD+=(--bf16)
 fi
-
-# Execute the command
-echo "Running command: $CMD"
-echo "==============================================="
-eval $CMD
-
-# Check exit status
-if [ $? -eq 0 ]; then
-    echo "==============================================="
+printf 'Running command:'
+printf ' %q' "${CMD[@]}"
+printf '\n'
+if "${CMD[@]}"; then
     echo "Fine-tuning completed successfully!"
     echo "Output saved to: $OUTPUT_DIR"
-    echo "==============================================="
 else
-    echo "==============================================="
-    echo "Error: Fine-tuning failed with exit code $?"
-    echo "==============================================="
-    exit 1
+    status=$?
+    echo "Error: Fine-tuning failed with exit code $status" >&2
+    exit "$status"
 fi

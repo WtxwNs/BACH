@@ -2,27 +2,10 @@ import os
 import sys
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'xcodec_mini_infer'))
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'xcodec_mini_infer', 'descriptaudiocodec'))
-import re
-import random
-import uuid
-import copy
-from tqdm import tqdm
-from collections import Counter
 import argparse
-import numpy as np
-import torch
-import torchaudio
-from torchaudio.transforms import Resample
-import soundfile as sf
-from einops import rearrange
-from transformers import AutoTokenizer, AutoModelForCausalLM, LogitsProcessor, LogitsProcessorList
-from omegaconf import OmegaConf
-from codecmanipulator import CodecManipulator
-from mmtokenizer import _MMSentencePieceTokenizer
-from models.soundstream_hubert_new import SoundStream
-from vocoder import build_codec_model, process_audio
-from post_process_audio import replace_low_freq_with_energy_matched
-
+from inference_utils import (
+    create_codec_model, filename_tag, prompt_count, split_lyrics, validate_prompt_args,
+)
 
 parser = argparse.ArgumentParser()
 # Model Configuration:
@@ -58,16 +41,43 @@ parser.add_argument('-r', '--rescale', action='store_true', help='Rescale output
 
 
 args = parser.parse_args()
-if args.use_audio_prompt and not args.audio_prompt_path:
-    raise FileNotFoundError("Please offer audio prompt filepath using '--audio_prompt_path', when you enable 'use_audio_prompt'!")
-if args.use_dual_tracks_prompt and not args.vocal_track_prompt_path and not args.instrumental_track_prompt_path:
-    raise FileNotFoundError("Please offer dual tracks prompt filepath using '--vocal_track_prompt_path' and '--inst_decoder_path', when you enable '--use_dual_tracks_prompt'!")
+try:
+    validate_prompt_args(args)
+    with open(args.genre_txt, encoding="utf-8") as f:
+        genres = f.read().strip()
+    with open(args.lyrics_txt, encoding="utf-8") as f:
+        lyrics = split_lyrics(f.read())
+    run_n_segments = prompt_count(lyrics, args.run_n_segments)
+except (ValueError, OSError) as exc:
+    parser.error(str(exc))
+
+import re
+import random
+import uuid
+import copy
+from tqdm import tqdm
+from collections import Counter
+import numpy as np
+import torch
+import torchaudio
+from torchaudio.transforms import Resample
+import soundfile as sf
+from einops import rearrange
+from transformers import AutoTokenizer, AutoModelForCausalLM, LogitsProcessor, LogitsProcessorList
+from omegaconf import OmegaConf
+from codecmanipulator import CodecManipulator
+from mmtokenizer import _MMSentencePieceTokenizer
+from models.soundstream_hubert_new import SoundStream
+from vocoder import build_codec_model, process_audio
+from post_process_audio import replace_low_freq_with_energy_matched
+
+
 stage1_model = args.stage1_model
 stage2_model = args.stage2_model
 cuda_idx = args.cuda_idx
 max_new_tokens = args.max_new_tokens
 stage1_output_dir = os.path.join(args.output_dir, f"stage1")
-stage2_output_dir = stage1_output_dir.replace('stage1', 'stage2')
+stage2_output_dir = os.path.join(args.output_dir, "stage2")
 os.makedirs(stage1_output_dir, exist_ok=True)
 os.makedirs(stage2_output_dir, exist_ok=True)
 def seed_everything(seed=42): 
@@ -97,8 +107,10 @@ if torch.__version__ >= "2.0.0":
 codectool = CodecManipulator("xcodec", 0, 1)
 codectool_stage2 = CodecManipulator("xcodec", 0, 8)
 model_config = OmegaConf.load(args.basic_model_config)
-codec_model = eval(model_config.generator.name)(**model_config.generator.config).to(device)
-parameter_dict = torch.load(args.resume_path, map_location='cpu', weights_only=False)
+codec_model = create_codec_model(
+    model_config.generator, {"SoundStream": SoundStream}
+).to(device)
+parameter_dict = torch.load(args.resume_path, map_location='cpu', weights_only=True)
 codec_model.load_state_dict(parameter_dict['codec_model'])
 codec_model.to(device)
 codec_model.eval()
@@ -130,21 +142,8 @@ def encode_audio(codec_model, audio_prompt, device, target_bw=0.5):
     raw_codes = raw_codes.cpu().numpy().astype(np.int16)
     return raw_codes
 
-def split_lyrics(lyrics):
-    pattern = r"\[(\w+)\](.*?)(?=\[|\Z)"
-    segments = re.findall(pattern, lyrics, re.DOTALL)
-    structured_lyrics = [f"[{seg[0]}]\n{seg[1].strip()}\n\n" for seg in segments]
-    return structured_lyrics
-
 # Call the function and print the result
 stage1_output_set = []
-# Tips:
-# genre tags support instrumental，genre，mood，vocal timbr and vocal gender
-# all kinds of tags are needed
-with open(args.genre_txt) as f:
-    genres = f.read().strip()
-with open(args.lyrics_txt) as f:
-    lyrics = split_lyrics(f.read())
 # intruction
 full_lyrics = "\n".join(lyrics)
 prompt_texts = [f"Generate music from the given lyrics segment by segment.\n[Genre] {genres}\n{full_lyrics}"]
@@ -161,7 +160,6 @@ repetition_penalty = args.repetition_penalty
 start_of_segment = mmtokenizer.tokenize('[start_of_segment]')
 end_of_segment = mmtokenizer.tokenize('[end_of_segment]')
 # Format text prompt
-run_n_segments = min(args.run_n_segments+1, len(lyrics))
 for i, p in enumerate(tqdm(prompt_texts[:run_n_segments], desc="Stage1 inference...")):
     section_text = p.replace('[start_of_segment]', '').replace('[end_of_segment]', '')
     guidance_scale = 1.5 if i <=1 else 1.2
@@ -244,8 +242,8 @@ for i in range(range_begin, len(soa_idx)):
     instrumentals.append(instrumentals_ids)
 vocals = np.concatenate(vocals, axis=1)
 instrumentals = np.concatenate(instrumentals, axis=1)
-vocal_save_path = os.path.join(stage1_output_dir, f"{genres.replace(' ', '-')}_tp{top_p}_T{temperature}_rp{repetition_penalty}_maxtk{max_new_tokens}_{random_id}_vtrack".replace('.', '@')+'.npy')
-inst_save_path = os.path.join(stage1_output_dir, f"{genres.replace(' ', '-')}_tp{top_p}_T{temperature}_rp{repetition_penalty}_maxtk{max_new_tokens}_{random_id}_itrack".replace('.', '@')+'.npy')
+vocal_save_path = os.path.join(stage1_output_dir, f"{filename_tag(genres)}_tp{top_p}_T{temperature}_rp{repetition_penalty}_maxtk{max_new_tokens}_{random_id}_vtrack".replace('.', '@')+'.npy')
+inst_save_path = os.path.join(stage1_output_dir, f"{filename_tag(genres)}_tp{top_p}_T{temperature}_rp{repetition_penalty}_maxtk{max_new_tokens}_{random_id}_itrack".replace('.', '@')+'.npy')
 np.save(vocal_save_path, vocals)
 np.save(inst_save_path, instrumentals)
 stage1_output_set.append(vocal_save_path)
@@ -346,16 +344,21 @@ def stage2_inference(model, stage1_output_set, stage2_output_dir, batch_size=4):
         
         if os.path.exists(output_filename):
             print(f'{output_filename} stage2 has done.')
+            stage2_result.append(output_filename)
             continue
         
         # Load the prompt
         prompt = np.load(stage1_output_set[i]).astype(np.int32)
+        if prompt.ndim != 2 or prompt.shape[-1] == 0:
+            raise ValueError("Stage 1 must contain a nonempty two-dimensional codec sequence")
         
         # Only accept 6s segments
         output_duration = prompt.shape[-1] // 50 // 6 * 6
         num_batch = output_duration // 6
         
-        if num_batch <= batch_size:
+        if num_batch == 0:
+            output = np.empty(0, dtype=np.int32)
+        elif num_batch <= batch_size:
             # If num_batch is less than or equal to batch_size, we can infer the entire prompt at once
             output = stage2_generate(model, prompt[:, :output_duration*50], batch_size=num_batch)
         else:

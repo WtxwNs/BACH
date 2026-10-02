@@ -1,20 +1,22 @@
-import numpy as np
-import librosa
 import time
 import argparse
-import torch
-from extract_pitch_values_from_audio.src import RMVPE
 import os
 from pathlib import Path
-from tqdm import tqdm
 
 def process_audio(rmvpe, audio_path, output_path, device, hop_length, threshold):
     """Process an audio file in 10-second chunks and save the results."""
+    import numpy as np
+    import librosa
+    from tqdm import tqdm
+
     # Load the audio file
     audio, sr = librosa.load(str(audio_path), sr=None)
+    if not len(audio):
+        raise ValueError(f"Audio file is empty: {audio_path}")
+    audio_duration = len(audio) / sr
     chunk_size = 10 * sr
     # pad to make the audio length to be multiple of hop_length
-    audio = np.pad(audio, (0, chunk_size - len(audio) % chunk_size), mode='constant')
+    audio = np.pad(audio, (0, (-len(audio)) % chunk_size), mode='constant')
     
     # Calculate chunk size in samples (10 seconds * sample rate)
     total_chunks = int(np.round(len(audio) / chunk_size))
@@ -53,21 +55,32 @@ def process_audio(rmvpe, audio_path, output_path, device, hop_length, threshold)
         for f0 in all_f0:
             f.write(f'{f0:.2f}\n')
     
-    return total_infer_time, len(audio) / sr  # Return total inference time and audio duration
+    return total_infer_time, audio_duration  # Exclude padding from the duration
 
 def main():
-    input_dir = Path("/root/yue_pitch_evals/yue_vs_others_sep")
-    output_dir = Path("/root/yue_pitch_evals/yue_vs_others_sep_pitch")
-    device = "cuda"
-    
+    parser = argparse.ArgumentParser(description="Extract vocal pitch values from a directory")
+    parser.add_argument("--input_dir", type=Path, required=True)
+    parser.add_argument("--output_dir", type=Path, required=True)
+    parser.add_argument("--model_path", default="model.pt")
+    parser.add_argument("--device", default=None)
+    args = parser.parse_args()
+    input_dir, output_dir = args.input_dir, args.output_dir
+    if not input_dir.is_dir():
+        parser.error(f"Input directory does not exist: {input_dir}")
+    wav_files = list(input_dir.rglob('*.Vocals.mp3'))
+    print(f'Found {len(wav_files)} vocal files to process')
+    if not wav_files:
+        print('No matching audio files; nothing to process.')
+        return
+
+    import torch
+    from tqdm import tqdm
+    from extract_pitch_values_from_audio.src import RMVPE
+    device = args.device or ("cuda" if torch.cuda.is_available() else "cpu")
     print(f'Using device: {device}')
     print('Loading model...')
-    rmvpe = RMVPE("model.pt", hop_length=160)
-    
-    # Find all WAV files in input directory and subdirectories
-    wav_files = list(input_dir.rglob('*.Vocals.mp3'))
-    print(f'Found {len(wav_files)} WAV files to process')
-    
+    rmvpe = RMVPE(args.model_path, hop_length=160)
+
     total_time = 0
     total_audio_duration = 0
     
@@ -95,7 +108,10 @@ def main():
     
     print('\nProcessing complete!')
     print(f'Total processing time: {total_time:.2f}s')
-    print(f'Average RTF: {total_time/total_audio_duration:.2f}')
+    if total_audio_duration > 0:
+        print(f'Average RTF: {total_time/total_audio_duration:.2f}')
+    else:
+        print('No audio files were processed successfully.')
 
 if __name__ == '__main__':
     main()
